@@ -1,0 +1,30 @@
+#ecco come creare velocemente un client TCP
+
+import socket #serve per connette due nodi sulla rete
+
+target_host = "0.0.0.0"
+target_port = 9998
+messaggio = "dido GAYYYY"
+
+#creazione oggetto SOCKET
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#AF_INET indica che usiamo in indirizzo IPv4 o un nome host
+#SOCK_STREAM indica che si tratta di un client TCP
+
+#connessione del client
+client.connect((target_host, target_port))
+
+#invio dei dati
+#client.send(b"GET / HTTP/1.1\r\nHost: google.com\r\n\r\n")
+client.sendall(messaggio.encode())#trasforma il messaggio in sequenza di bit
+
+#ricezione della risposta
+response = client.recv(4096)
+
+
+print(response.decode())##stampa i dati in risposta
+client.close()#va a chiudere il socket, SEMPRE DA CHIUDERE ALLA FINE!!
+
+#---------------------------------------------------------
+#il server si aspetta che siamo sempre noi a mandare i dati per primi
+#il server ci rispondere in modo tempestivo con dei dati
