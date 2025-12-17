@@ -28,7 +28,7 @@ def boh():
 def createDir_file(dir_name, file_name):
     create_dir = subprocess.run(["mkdir","-p",dir_name], capture_output=True, check=True, text=True)
     if create_dir.returncode == 0:
-        print("[*] The directory alredy exist/has been created")
+        print("[*] The directory 'ssid-default-ip' alredy exist/has been created")
     else:
         print("[-] Fatal errore while creating the directory")
         sis.exit()

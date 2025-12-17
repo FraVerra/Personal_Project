@@ -1,12 +1,12 @@
 '''
 Autore: Verra Francesco
-
 '''
 
 import subprocess
 import random
 import sys
 import time
+
 '''
 def write_ip_in_file(current_ip):
     try:
@@ -120,6 +120,34 @@ def network_ip_generator(binary_ip, subnet_mask):
         else:
             net_ip.append(data)
     return "".join(net_ip)
+
+def read_ssid_name():
+    command = ["sudo","iwgetid","-r"]
+    ok_message = "[+] Correctly read the SSID name"
+    fail_message = "[-] Fatal error while reding the SSID name"
+    ssid = function_command_status(command, ok_message, fail_message, True)
+    if not ssid:
+        print("[-] Fatal error, no network connection")
+        print("[*] Closing the program")
+        sys.exit()
+    else:
+        return ssid
+
+def createDir_file(dir_name, file_name):
+    create_dir = subprocess.run(["mkdir","-p",dir_name], capture_output=True, check=True, text=True)
+    if create_dir.returncode == 0:
+        print("[*] The directory 'ssid-default-ip' alredy exist/has been created")
+    else:
+        print("[-] Fatal errore while creating the directory")
+        sis.exit()
+    try:
+        ssid_file = open(f"{dir_name}/{file_name}","a")
+    except FileNotFoundError:
+        ssid_file = open(f"{dir_name}/{file_name}","w")
+    
+    ssid_file.close()
+    ssid_file = open(f"{dir_name}/{file_name}","a")
+    ssid_file.write(file_name+"\n")
 
 def command_execution(gateway_IP, network_interface, current_ip_address, current_subnet_mask, ip_address_plus_subnet_mask, random_ip):
     #-------------
@@ -242,25 +270,31 @@ def scan_network_hosts(current_gateway, network_ip):
     return diz
 
 def main():
-
-    gateway_IP,network_interface,current_ip_address,current_subnet_mask,ip_address_plus_subnet_mask,broadcast_ip = show_ip_informations(True)
     
-    octects_current_ip = octects_division(current_ip_address)
-    network_ip_binary = network_ip_generator(ip_converter(octects_current_ip), current_subnet_mask)
-    network_ip_dec = binary_to_decimal(network_ip_binary)
-    network_ip_plus_subnet = ip_plus_subnet(network_ip_dec, int(current_subnet_mask))
+    try:
+        ssid_result = subprocess.run(["sudo","iwgetid","-r"], capture_output=True, text=True, check=True)
+        ssid_name = ssid_result.stdout[0:-1]
+        print(f"[*] You are correcly connected to '{ssid_name}'")
+        createDir_file("ssid-default-ip",ssid_name)
+
+        gateway_IP,network_interface,current_ip_address,current_subnet_mask,ip_address_plus_subnet_mask,broadcast_ip = show_ip_informations(True)
     
-    diz = scan_network_hosts(gateway_IP, network_ip_plus_subnet)
-    print(diz)
+        octects_current_ip = octects_division(current_ip_address)
+        network_ip_binary = network_ip_generator(ip_converter(octects_current_ip), current_subnet_mask)
+        network_ip_dec = binary_to_decimal(network_ip_binary)
+        network_ip_plus_subnet = ip_plus_subnet(network_ip_dec, int(current_subnet_mask))
+    
+        diz = scan_network_hosts(gateway_IP, network_ip_plus_subnet)
 
-    print(f"{octects_current_ip},{network_ip_binary},{network_ip_dec},{network_ip_plus_subnet},{broadcast_ip}")
-
-    random_ip = random_ip_generator(network_ip_dec, broadcast_ip, diz)
-    new_ip = ip_plus_subnet(random_ip, current_subnet_mask)
+        random_ip = random_ip_generator(network_ip_dec, broadcast_ip, diz)
+        new_ip = ip_plus_subnet(random_ip, current_subnet_mask)
     
 
-    command_execution(gateway_IP, network_interface, current_ip_address, current_subnet_mask,ip_address_plus_subnet_mask, new_ip)
-    show_ip_informations(False)
+        command_execution(gateway_IP, network_interface, current_ip_address, current_subnet_mask,ip_address_plus_subnet_mask, new_ip)
+        show_ip_informations(False)
+    except subprocess.CalledProcessError:
+        print("[!] You are not connected to any network...")
+        sys.exit()
 
 if __name__ == "__main__":
     main()
