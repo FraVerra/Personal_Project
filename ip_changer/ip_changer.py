@@ -6,6 +6,8 @@ import subprocess
 import random
 import sys
 import time
+import argparse
+import textwrap
 
 '''
 def write_ip_in_file(current_ip):
@@ -133,7 +135,7 @@ def read_ssid_name():
     else:
         return ssid
 
-def createDir_file(dir_name, file_name):
+def createDir_file(dir_name, file_name, default_ip):
     create_dir = subprocess.run(["mkdir","-p",dir_name], capture_output=True, check=True, text=True)
     if create_dir.returncode == 0:
         print("[*] The directory 'ssid-default-ip' alredy exist/has been created")
@@ -147,61 +149,77 @@ def createDir_file(dir_name, file_name):
     
     ssid_file.close()
     ssid_file = open(f"{dir_name}/{file_name}","a")
-    ssid_file.write(file_name+"\n")
+    ssid_file.write(default_ip+"\n")
+
+def delete_old_ip():
+    ok_message = "[+] Correctly read the old ip address"
+    fail_message = "[-] Fatal errore while trying to read the old ip address"
+    command = ["sudo","ip","a"]
+    ip_informations = function_command_status(command, ok_message, fail_message, True)
+    information_lines = ip_informations.stdout.split("\n")
+    for lines in information_lines:
+        words = lines.split(" ")
+        if "secondary" in words:
+            old_ip = words[5]
+            return old_ip
+    return None
 
 def command_execution(gateway_IP, network_interface, current_ip_address, current_subnet_mask, ip_address_plus_subnet_mask, random_ip):
-    #-------------
+    
     disable_network_manager = ["sudo", "nmcli", "dev", "set", network_interface, "managed", "no"]
-    disable_network_manager_ok_m = "[+] Network Manager correctly disabled"
+    disable_network_manager_ok_m = "\n[+] Network Manager correctly disabled"
     disable_network_manager_fail_m = "[-] Fatal error during Network Manager disconnection"
     function_command_status(disable_network_manager, disable_network_manager_ok_m, disable_network_manager_fail_m, False)
     time.sleep(1)
-    #------------
+    
     disable_network_interface = ["sudo", "ip", "link", "set", "dev", network_interface, "down"]
     disable_network_interface_ok_m = "[+] Network Interface correctly disabled"
     disable_network_interface_fail_m = "[-] Fatal error during Network Interface disconnection"
     function_command_status(disable_network_interface, disable_network_interface_ok_m, disable_network_manager_fail_m, False)
     time.sleep(1)
-    #--------------
+
     delete_every_ip = ["sudo", "ip", "addr", "flush", "dev", network_interface]
     delete_every_ip_ok_m = "[+] Old IP addresses correctly deleted"
     delete_every_ip_fail_m = "[-] Fatal error during deleting old IP addresses"
     function_command_status(delete_every_ip, delete_every_ip_ok_m, delete_every_ip_fail_m, False)
     time.sleep(1)
-    #------------
+    
     new_ip_address = ["sudo", "ip", "addr", "add", random_ip, "dev", network_interface]
     new_ip_address_ok_m = "[+] New IP address has been correctly added"
     new_ip_address_fail_m = "[-] Fatal error in adding new IP address"
     function_command_status(new_ip_address, new_ip_address_ok_m, new_ip_address_fail_m, False)
     time.sleep(1)
-    #--------------
+    
     enable_network_interface = ["sudo", "ip", "link", "set", "dev", network_interface, "up"]
     enable_network_interface_ok_m = "[+] Network Interface successfully turned on"
     enable_network_interface_fail_m = "[-] Fatal error while turning on Network Interface"
     function_command_status(enable_network_interface, enable_network_interface_ok_m, enable_network_interface_fail_m, False)
     time.sleep(5)
-    #--------------
+    
     enable_network_manager = ["sudo", "nmcli", "dev", "set", network_interface, "managed", "yes"]
     enable_network_manager_ok_m = "[+] Successfully enabled network manager"
     enable_network_manager_fail_m = "[-] Fatal error while turning On network manager"
     function_command_status(enable_network_manager, enable_network_manager_ok_m, enable_network_manager_fail_m, False)
     time.sleep(5)
-    #--------------
+    
     setting_gateway = ["sudo", "ip", "route", "add", "default", "via", gateway_IP, "dev", network_interface]
     setting_gateway_ok_m = "[+] Gateway successfully initialized"
     setting_gateway_fail_m = "[-] Fatal error while initializing the Gateway"
     function_command_status(setting_gateway, setting_gateway_ok_m, setting_gateway_fail_m, False)
     time.sleep(5)
-    #---------------
-    delete_old_IP = ["sudo","ip","addr","del",ip_address_plus_subnet_mask,"dev",network_interface]
-    delete_old_IP_ok_m = "[+] Successfully deleted old secondary IP address!"
-    delete_old_IP_fail_m = "[-] Warning: Failed to delete old secondary IP address."
-    function_command_status(delete_old_IP, delete_old_IP_ok_m, delete_old_IP_fail_m, False)
-    time.sleep(2)
-    
-    print("[+] Successfully changed the IP address!")
 
-def show_ip_informations(return_option):
+    old_ip = delete_old_ip()
+    #print(f"\nOLD IP  = {old_ip}\nDELETABLE IP = {ip_address_plus_subnet_mask}") 
+    if old_ip != None:  
+        delete_old_IP = ["sudo","ip","addr","del",old_ip,"dev",network_interface]
+        delete_old_IP_ok_m = "[+] Successfully deleted old secondary IP address!"
+        delete_old_IP_fail_m = "[-] Warning: Failed to delete old secondary IP address."
+        function_command_status(delete_old_IP, delete_old_IP_ok_m, delete_old_IP_fail_m, False)
+        time.sleep(2)
+    
+    print("\n[+] Successfully changed the IP address!")
+
+def show_ip_informations(ret_option):
 
     gateway_IP = None
     network_interface = None
@@ -220,9 +238,6 @@ def show_ip_informations(return_option):
     gateway_informations = read_gateway.stdout.split(" ")
     gateway_IP = gateway_informations[2]
     network_interface = gateway_informations[4]
-    print("\n")
-    print(f"[*] Current Gateway address: {gateway_IP}")
-    print(f"[*] Current Network Interface: {network_interface}")
 
     ip_a = subprocess.run(["ip","a"], capture_output=True, text=True, check=True)
     #print(ip_a.stdout)
@@ -235,17 +250,11 @@ def show_ip_informations(return_option):
             ip_address_plus_subnet_mask = parts[1]
             current_ip_address = parts[1].split("/")[0]
             current_subnet_mask = parts[1].split("/")[-1]
-            binary_octects = ip_converter(octects_division(current_ip_address))
-            binary_broadcast_ip = broadcast_ip_generator(binary_octects, current_subnet_mask)
-            broadcast_ip = binary_to_decimal(binary_broadcast_ip)
-            print(f"[*] Current IP address: {current_ip_address} ({binary_octects})")
-            print(f"[*] Current Broadcast IP: {broadcast_ip} ({binary_broadcast_ip})")
-            print(f"[*] Current subnet mask: /{current_subnet_mask}\n")
-
-    if return_option == True:
-        return gateway_IP, network_interface, current_ip_address, current_subnet_mask, ip_address_plus_subnet_mask, broadcast_ip
-    else:
-        print("[*] For the function 'show_ip_informations' user decided to not return anything")
+            bin_octects = ip_converter(octects_division(current_ip_address))
+            bin_broadcast_ip = broadcast_ip_generator(bin_octects, current_subnet_mask)
+            broadcast_ip = binary_to_decimal(bin_broadcast_ip)
+    if ret_option == True:
+        return gateway_IP, network_interface, current_ip_address, current_subnet_mask, ip_address_plus_subnet_mask, broadcast_ip,bin_octects,bin_broadcast_ip
 
 
 def scan_network_hosts(current_gateway, network_ip):
@@ -269,32 +278,76 @@ def scan_network_hosts(current_gateway, network_ip):
                 diz[hosts_ip]=ip_converter(octects)
     return diz
 
-def main():
+def main(counter):
     
+    #createDir_file("ssid-default-ip",ssid_name, current_ip_address)
+    gateway_IP,network_interface,current_ip_address,current_subnet_mask,ip_address_plus_subnet_mask,broadcast_ip,bin_octects,bin_broadcast_ip = show_ip_informations(True)        
+
+
+    if (counter == 0):
+        print(f"\n[*] Current Gateway address: {gateway_IP}")
+        print(f"[*] Current Network Interface: {network_interface}")
+        print(f"[*] Current IP address: {current_ip_address} ({bin_octects})")
+        print(f"[*] Current Broadcast IP: {broadcast_ip} ({bin_broadcast_ip})")
+        print(f"[*] Current subnet mask: /{current_subnet_mask}\n")
+    
+    octects_current_ip = octects_division(current_ip_address)
+    network_ip_binary = network_ip_generator(ip_converter(octects_current_ip), current_subnet_mask)
+    network_ip_dec = binary_to_decimal(network_ip_binary)
+    network_ip_plus_subnet = ip_plus_subnet(network_ip_dec, int(current_subnet_mask))
+    
+    diz = scan_network_hosts(gateway_IP, network_ip_plus_subnet)
+
+    random_ip = random_ip_generator(network_ip_dec, broadcast_ip, diz)
+    new_ip = ip_plus_subnet(random_ip, current_subnet_mask)
+
+    command_execution(gateway_IP, network_interface, current_ip_address, current_subnet_mask, ip_address_plus_subnet_mask, new_ip)  
+    
+    gateway_IP,network_interface,current_ip_address,current_subnet_mask,ip_address_plus_subnet_mask,broadcast_ip,bin_octects,bin_broadcast_ip = show_ip_informations(True)
+    print(f"\n[*] Current Gateway address: {gateway_IP}")
+    print(f"[*] Current Network Interface: {network_interface}")
+    print(f"[*] Current IP address: {current_ip_address} ({bin_octects})")
+    print(f"[*] Current Broadcast IP: {broadcast_ip} ({bin_broadcast_ip})")
+    print(f"[*] Current subnet mask: /{current_subnet_mask}\n")
+    
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="----| ip-changer Tool |----", formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog=textwrap.dedent('''Usage examples of the -Super Magic Tool- 'ip_changer.py'
+        
+        #With '-c' you have to say how many times do you want to repeat the program(from 0 to 100)
+        ip_changer.py -c 3 -t 90
+        
+        #With '-t' you have to say how many delay in seconds to put between each run(from 5 to 3600 seconds!)
+        ip_changer.py -c 3 -t 90'''))
+    
+    parser.add_argument("-c","--count",type=int, default=1, help="How many times the program have to run")
+    parser.add_argument("-t","--time", type=str, default=60,help="The delay between each program run")
+    args = parser.parse_args()
+
+    if args.time == "105.103.114.49.115":
+        print("TADAAAAAA....\nTHIS PROGRAMMA IS GENTRLY OFFERED BY ME: cicchino")
+        print("You alredy found something that someone call 'EASTER EGG' and something that i call...")
+        sys.exit()
+    elif (int(args.time) < 5 or int(args.time) > 3600) and (args.count <= 0 or args.count > 100):
+        print("[!] Error, invalid count number and time!")
+        sys.exit()
+    elif args.count <= 0 or args.count > 100:
+        print("[!] Error, invalid count number!")
+        sys.exit()
+    elif int(args.time) < 5 or int(args.time) > 3600:
+        print("[!] Error, invalid time!")
+        sys.exit()
+
     try:
-        ssid_result = subprocess.run(["sudo","iwgetid","-r"], capture_output=True, text=True, check=True)
-        ssid_name = ssid_result.stdout[0:-1]
-        print(f"[*] You are correcly connected to '{ssid_name}'")
-        createDir_file("ssid-default-ip",ssid_name)
+        for i in range(args.count):
+            ssid_result = subprocess.run(["sudo","iwgetid","-r"], capture_output=True, text=True, check=True)
+            ssid_name = ssid_result.stdout[0:-1]
+            print(f"\n[*] You are correcly connected to '{ssid_name}'")
+            main(i)
+            print(f"\t\t---------------|/| FINISHED the {i+1}^ time! |\|----------------")
+            if i < args.count-1: 
+                time.sleep(int(args.time))
 
-        gateway_IP,network_interface,current_ip_address,current_subnet_mask,ip_address_plus_subnet_mask,broadcast_ip = show_ip_informations(True)
-    
-        octects_current_ip = octects_division(current_ip_address)
-        network_ip_binary = network_ip_generator(ip_converter(octects_current_ip), current_subnet_mask)
-        network_ip_dec = binary_to_decimal(network_ip_binary)
-        network_ip_plus_subnet = ip_plus_subnet(network_ip_dec, int(current_subnet_mask))
-    
-        diz = scan_network_hosts(gateway_IP, network_ip_plus_subnet)
-
-        random_ip = random_ip_generator(network_ip_dec, broadcast_ip, diz)
-        new_ip = ip_plus_subnet(random_ip, current_subnet_mask)
-    
-
-        command_execution(gateway_IP, network_interface, current_ip_address, current_subnet_mask,ip_address_plus_subnet_mask, new_ip)
-        show_ip_informations(False)
     except subprocess.CalledProcessError:
         print("[!] You are not connected to any network...")
         sys.exit()
-
-if __name__ == "__main__":
-    main()
