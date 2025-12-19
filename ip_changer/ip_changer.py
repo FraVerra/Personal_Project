@@ -164,6 +164,15 @@ def delete_old_ip():
             return old_ip
     return None
 
+def countdown(max_time):
+    testo_fisso = f"Time left to the next run: \t\t\t\t"
+    for i in range(max_time,0,-1):
+        print(" ",end=" ")
+        mins,sec = divmod(i,60)
+        print(end=f"\r{testo_fisso}{mins:02d} : {sec:02d}")
+        sys.stdout.flush()
+        time.sleep(1)
+
 def command_execution(gateway_IP, network_interface, current_ip_address, current_subnet_mask, ip_address_plus_subnet_mask, random_ip):
     
     disable_network_manager = ["sudo", "nmcli", "dev", "set", network_interface, "managed", "no"]
@@ -321,7 +330,7 @@ if __name__ == "__main__":
         ip_changer.py -c 3 -t 90'''))
     
     parser.add_argument("-c","--count",type=int, default=1, help="How many times the program have to run")
-    parser.add_argument("-t","--time", type=str, default=60,help="The delay between each program run")
+    parser.add_argument("-t","--time", type=str, default=5,help="The delay between each program run")
     args = parser.parse_args()
 
     if args.time == "105.103.114.49.115":
@@ -345,8 +354,8 @@ if __name__ == "__main__":
             print(f"\n[*] You are correcly connected to '{ssid_name}'")
             main(i)
             print(f"\t\t---------------|/| FINISHED the {i+1}^ time! |\|----------------")
-            if i < args.count-1: 
-                time.sleep(int(args.time))
+            if i < args.count-1:
+                countdown(int(args.time))
 
     except subprocess.CalledProcessError:
         print("[!] You are not connected to any network...")

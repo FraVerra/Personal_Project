@@ -2,6 +2,7 @@ import subprocess
 import sys
 import textwrap
 import argparse
+import time
 
 def function_command_status(command, ok_message, failure_message, decision):
     execution = subprocess.run(command, capture_output=True, text=True, check=True)
@@ -27,9 +28,20 @@ def delete_old_ip():
             old_ip.append(words[5])
     return old_ip
 
+def countdown(max_time):
+    testo_fisso = f"Time left to the next run: \t\t\t\t"
+    for i in range(max_time,0,-1):
+        print(" ",end=" ")
+        mins,sec = divmod(i,60)
+        print(end=f"\r{testo_fisso}{mins} : {sec}")
+        sys.stdout.flush()
+        time.sleep(1)
+
 def main():
     old_ip = delete_old_ip()
-    print(old_ip)
+    max_time = 120
+    print(max_time)
+    countdown(max_time)
 
 if __name__ == "__main__":
     main()
