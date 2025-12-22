@@ -62,7 +62,7 @@ def response_handler(buffer):
 
 #tale funzione contiene il cuore del proxy
 def proxy_handler(client_socket, remote_host, remote_port, receive_first):
-    remote_socket = socket.socket(socket.AF_INET, socket.SO_STREAM)
+    remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     remote_socket.connect((remote_host, remote_port))#per iniziare ci connettiamo a un host remoto
 
     if(receive_first):#ci assicuriamo di non dover inizializzare una connessione con il lato server e richiedere
@@ -100,3 +100,51 @@ def proxy_handler(client_socket, remote_host, remote_port, receive_first):
             remote_socket.close()
             print("[*] No more data. Closing connections.")
             break
+
+def server_loop(local_host, local_port, remote_host, remote_port, receive_first):
+#la funzione crea un socket che si collega all'host locale e si pone in ascolto
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        server.bind((local_host, local_port))
+    except Exception as e:  
+        print("Problem on bind %r" %e)
+
+        print("[!!] Failed to listen on %s:%d" %(local_host,local_port))
+        print("[!!] Check for other listening sockets or connect permission.")
+        sys.exit()
+    print("[*] Listening on %s:%d" %(local_host, local_port))
+    server.listen(5)
+    while True:#quando arriva una nuova richiesta passiamo a proxy_handler in nuovo thread
+        client_socket, addr = server.accept()
+        # stampa le informazioni sulla connessione locale
+        line = "> Received incoming connection from %s:%d"%(addr[0], addr[1])
+        print(line)
+        # avvia un thread dedicato al dialogo con l'host remoto
+        proxy_thread = threading.Thread(#si occupa di tutto quello che serve per il passaggio dei dati
+            target = proxy_handler,
+            args = (client_socket, remote_host, remote_port, receive_first))
+        proxy_thread.start()
+
+def main():
+    if len(sys.argv[1:]) != 5:
+        print("Usage: ./proxy.py [local host] [local port]", end="")
+        print("[remote host] [remote port] [receive first]")
+        print("Example: ./proxy.py 127.0.0.1 9000 10.12.132.1 9000 True")
+        sys.exit()
+    local_host = sys.argv[1]
+    local_port = int(sys.argv[2])
+
+    remote_host = sys.argv[3]
+    remote_port = int(sys.argv[4])
+
+    receive_first = sys.argv[5]
+
+    if "True" in receive_first:
+        receive_first = True
+    else:
+        receive_first = False
+
+    server_loop(local_host, local_port, remote_host, remote_port, receive_first)
+
+if __name__ == "__main__":
+    main()

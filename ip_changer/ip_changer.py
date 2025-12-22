@@ -172,6 +172,8 @@ def countdown(max_time):
         print(end=f"\r{testo_fisso}{mins:02d} : {sec:02d}")
         sys.stdout.flush()
         time.sleep(1)
+        if sec <= 1:
+            print(end=f"\r{testo_fisso} Finished")
 
 def command_execution(gateway_IP, network_interface, current_ip_address, current_subnet_mask, ip_address_plus_subnet_mask, random_ip):
     
@@ -351,11 +353,15 @@ if __name__ == "__main__":
         for i in range(args.count):
             ssid_result = subprocess.run(["sudo","iwgetid","-r"], capture_output=True, text=True, check=True)
             ssid_name = ssid_result.stdout[0:-1]
-            print(f"\n[*] You are correcly connected to '{ssid_name}'")
-            main(i)
-            print(f"\t\t---------------|/| FINISHED the {i+1}^ time! |\|----------------")
-            if i < args.count-1:
-                countdown(int(args.time))
+            if ssid_name != "":
+                print(f"\n[*] You are correcly connected to '{ssid_name}'")
+                main(i)
+                print(f"\t\t---------------|/| FINISHED the {i+1}^ time! |\|----------------")
+                if i < args.count-1:
+                    countdown(int(args.time))
+            else:
+                print("[!] You are not connected to any network...")
+                sys.exit()
 
     except subprocess.CalledProcessError:
         print("[!] You are not connected to any network...")
