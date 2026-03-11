@@ -329,15 +329,24 @@ if __name__ == "__main__":
         ip_changer.py -c 3 -t 90
         
         #With '-t' you have to say how many delay in seconds to put between each run(from 5 to 3600 seconds!)
-        ip_changer.py -c 3 -t 90'''))
+        ip_changer.py -c 3 -t 90
+
+         ---------------------------------------------------------
+        |                  -~- !ATTENTION! -~-                    |
+        |   If no arguments are specified, the program runs with: |
+        |        -c, --count    1 (once)                          |
+        |         -t, --time     5 (seconds)                      |
+         ---------------------------------------------------------
+        
+        '''))
     
     parser.add_argument("-c","--count",type=int, default=1, help="How many times the program have to run")
     parser.add_argument("-t","--time", type=str, default=5,help="The delay between each program run")
     args = parser.parse_args()
 
     if args.time == "105.103.114.49.115":
-        print("TADAAAAAA....\nTHIS PROGRAMMA IS GENTRLY OFFERED BY ME: cicchino")
-        print("You alredy found something that someone call 'EASTER EGG' and something that i call...")
+        print("TADAAAAAA....\nTHIS PROGRAMMA IS GENTLY OFFERED BY ME: cicchino")
+        print("You alredy found something that someone call 'EASTER EGG'")
         sys.exit()
     elif (int(args.time) < 5 or int(args.time) > 3600) and (args.count <= 0 or args.count > 100):
         print("[!] Error, invalid count number and time!")
@@ -356,9 +365,13 @@ if __name__ == "__main__":
             if ssid_name != "":
                 print(f"\n[*] You are correcly connected to '{ssid_name}'")
                 main(i)
-                print(f"\t\t---------------|/| FINISHED the {i+1}^ time! |\|----------------")
-                if i < args.count-1:
+                
+                if i == args.count-1:
+                    print(f"\t\t---------------|/| PROGRAM FINISHED SUCCESSFULLY |\|----------------")
+                else:
+                    print(f"\t\t---------------|/| FINISHED the {i+1}^ time! |\|----------------")
                     countdown(int(args.time))
+                    
             else:
                 print("[!] You are not connected to any network...")
                 sys.exit()
