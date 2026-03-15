@@ -1,5 +1,8 @@
 '''
+
 Autore: Verra Francesco
+Anno scolastico 2025-2026
+
 '''
 
 import subprocess
@@ -9,7 +12,23 @@ import time
 import argparse
 import textwrap
 
-'''
+
+def write_ip_in_file(current_ip, user_choice):
+
+    '''
+    True = enter the file in write mode
+    False = enter the file in append mode
+    '''
+
+    if user_choice == True:
+            file = open("ip_history.txt","w")
+            print("[*] Correctly created/entered the file 'ip_history.txt'")
+    else:
+        try:
+            file = open("ip_history.txt","a")
+            print("[*] Correctly entered in the file")
+
+
 def write_ip_in_file(current_ip):
     try:
         file = open("file_creati/ip_default.txt","r")
@@ -22,8 +41,8 @@ def write_ip_in_file(current_ip):
     print(lines[0])
     file.close()
 
-def read_ip_from_file()
-'''
+
+
 def extract_ip(text):
     parts = text.replace("(", "").replace(")", "").split()
     for p in parts:
