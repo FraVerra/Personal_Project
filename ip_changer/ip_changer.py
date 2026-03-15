@@ -11,36 +11,49 @@ import sys
 import time
 import argparse
 import textwrap
+from datetime import datetime
 
+'''
+def createDir_file(dir_name, file_name, default_ip):
+    create_dir = subprocess.run(["mkdir","-p",dir_name], capture_output=True, check=True, text=True)
+    if create_dir.returncode == 0:
+        print("[*] The directory 'ssid-default-ip' alredy exist/has been created")
+    else:
+        print("[-] Fatal errore while creating the directory")
+        sis.exit()
+    try:
+        ssid_file = open(f"{dir_name}/{file_name}","a")
+    except FileNotFoundError:
+        ssid_file = open(f"{dir_name}/{file_name}","w")
+    
+    ssid_file.close()
+    ssid_file = open(f"{dir_name}/{file_name}","a")
+    ssid_file.write(default_ip+"\n")
 
-def write_ip_in_file(current_ip, user_choice):
+'''
 
+def create_enter_file(user_choice):
     '''
     True = enter the file in write mode
     False = enter the file in append mode
     '''
 
-    if user_choice == True:
+    if user_choice.lower() == "true":
             file = open("ip_history.txt","w")
-            print("[*] Correctly created/entered the file 'ip_history.txt'")
+            print("[+] Correctly created/entered the file 'ip_history.txt'")
+            return file
     else:
         try:
             file = open("ip_history.txt","a")
-            print("[*] Correctly entered in the file")
+            print("[+] Correctly entered in the file")
+            return file
+        except FileNotFoundError:
+            print("[-] The file doesn't exist, i proceed to create it...")
+            return create_enter_file("true")
 
 
-def write_ip_in_file(current_ip):
-    try:
-        file = open("file_creati/ip_default.txt","r")
-        print("\n[*] Correctly entered in the file")
-        
-    except FileNotFoundError:
-        file = open("file_creati/ip_default.txt","w")
-        print("[*] File correctly created")
-    lines = file.readlines()
-    print(lines[0])
-    file.close()
-
+def write_ip_in_file(file, ip_addr):
+    file.write(f"IP Address: {ip_addr}  Time: {datetime.now()}\n")
 
 
 def extract_ip(text):
@@ -153,22 +166,6 @@ def read_ssid_name():
         sys.exit()
     else:
         return ssid
-
-def createDir_file(dir_name, file_name, default_ip):
-    create_dir = subprocess.run(["mkdir","-p",dir_name], capture_output=True, check=True, text=True)
-    if create_dir.returncode == 0:
-        print("[*] The directory 'ssid-default-ip' alredy exist/has been created")
-    else:
-        print("[-] Fatal errore while creating the directory")
-        sis.exit()
-    try:
-        ssid_file = open(f"{dir_name}/{file_name}","a")
-    except FileNotFoundError:
-        ssid_file = open(f"{dir_name}/{file_name}","w")
-    
-    ssid_file.close()
-    ssid_file = open(f"{dir_name}/{file_name}","a")
-    ssid_file.write(default_ip+"\n")
 
 def delete_old_ip():
     ok_message = "[+] Correctly read the old ip address"
@@ -308,7 +305,9 @@ def scan_network_hosts(current_gateway, network_ip):
                 diz[hosts_ip]=ip_converter(octects)
     return diz
 
-def main(counter):
+def main(counter, file_decision):
+
+    file = create_enter_file(file_decision)
     
     #createDir_file("ssid-default-ip",ssid_name, current_ip_address)
     gateway_IP,network_interface,current_ip_address,current_subnet_mask,ip_address_plus_subnet_mask,broadcast_ip,bin_octects,bin_broadcast_ip = show_ip_informations(True)        
@@ -333,13 +332,17 @@ def main(counter):
 
     command_execution(gateway_IP, network_interface, current_ip_address, current_subnet_mask, ip_address_plus_subnet_mask, new_ip)  
     
+    write_ip_in_file(file, current_ip_address)
+
     gateway_IP,network_interface,current_ip_address,current_subnet_mask,ip_address_plus_subnet_mask,broadcast_ip,bin_octects,bin_broadcast_ip = show_ip_informations(True)
     print(f"\n[*] Current Gateway address: {gateway_IP}")
     print(f"[*] Current Network Interface: {network_interface}")
     print(f"[*] Current IP address: {current_ip_address} ({bin_octects})")
     print(f"[*] Current Broadcast IP: {broadcast_ip} ({bin_broadcast_ip})")
     print(f"[*] Current subnet mask: /{current_subnet_mask}\n")
-    
+
+    return file
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="----| ip-changer Tool |----", formatter_class=argparse.RawDescriptionHelpFormatter,
     epilog=textwrap.dedent('''Usage examples of the -Super Magic Tool- 'ip_changer.py'
@@ -350,17 +353,21 @@ if __name__ == "__main__":
         #With '-t' you have to say how many delay in seconds to put between each run(from 5 to 3600 seconds!)
         ip_changer.py -c 3 -t 90
 
+        #With '-f' you have to say if you want to enter in a file in 'WRITE'(true) or 'APPEND'(false) mode 
+
          ---------------------------------------------------------
         |                  -~- !ATTENTION! -~-                    |
         |   If no arguments are specified, the program runs with: |
         |        -c, --count    1 (once)                          |
-        |         -t, --time     5 (seconds)                      |
+        |        -t, --time     5 (seconds)                       |
+        |        -f, --file     true (write)                      |
          ---------------------------------------------------------
         
         '''))
     
     parser.add_argument("-c","--count",type=int, default=1, help="How many times the program have to run")
     parser.add_argument("-t","--time", type=str, default=5,help="The delay between each program run")
+    parser.add_argument("-f","--file", type=str, default="true",help="'WRITE'(true) or 'APPEND'(false) mode")
     args = parser.parse_args()
 
     if args.time == "105.103.114.49.115":
@@ -376,6 +383,9 @@ if __name__ == "__main__":
     elif int(args.time) < 5 or int(args.time) > 3600:
         print("[!] Error, invalid time!")
         sys.exit()
+    elif (args.file.lower() != "false") and (args.file.lower() != "true"):
+        print("[!] Error, invalid file decision!")
+        sys.exit()
 
     try:
         for i in range(args.count):
@@ -383,13 +393,16 @@ if __name__ == "__main__":
             ssid_name = ssid_result.stdout[0:-1]
             if ssid_name != "":
                 print(f"\n[*] You are correcly connected to '{ssid_name}'")
-                main(i)
+                file = main(i, args.file)
                 
                 if i == args.count-1:
-                    print(f"\t\t---------------|/| PROGRAM FINISHED SUCCESSFULLY |\|----------------")
+                    print(f"\t\t---------------| | PROGRAM FINISHED SUCCESSFULLY | |----------------")
+                    file.close()
                 else:
-                    print(f"\t\t---------------|/| FINISHED the {i+1}^ time! |\|----------------")
+                    if args.count >= 1:
+                        args.file = "false"
                     countdown(int(args.time))
+                    print(f"\t\t---------------| | FINISHED the {i+1}^ time! | |----------------")
                     
             else:
                 print("[!] You are not connected to any network...")
